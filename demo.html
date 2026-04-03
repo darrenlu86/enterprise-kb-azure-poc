@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>政府法規 AI 知識庫 — Azure 全雲端 PoC</title>
+  <style>
+    :root {
+      --azure: #0078d4; --dark: #002050; --light: #deecf9;
+      --surface: #f6f8fa; --border: #d1d9e0; --text: #1b1b1b;
+      --dim: #57606a; --green: #0e8a16; --red: #cf222e;
+      --orange: #d97706; --code-bg: #161b22;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Noto Sans TC, sans-serif;
+      line-height: 1.7; color: var(--text);
+      max-width: 1000px; margin: 0 auto; padding: 2rem 1.5rem 4rem;
+    }
+    h1 { font-size: 2rem; color: var(--dark); margin-bottom: .3rem; }
+    h2 {
+      font-size: 1.35rem; margin-top: 2.5rem; margin-bottom: 1rem;
+      padding-bottom: .5rem; border-bottom: 2px solid var(--azure); color: var(--dark);
+    }
+    h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: .5rem; }
+    p { margin-bottom: 1rem; }
+    .subtitle { color: var(--dim); font-size: 1.05rem; margin-bottom: 2rem; }
+    a { color: var(--azure); }
+
+    /* Story section */
+    .story-box {
+      background: linear-gradient(135deg, #f0f6ff, #fff);
+      border: 1px solid var(--border);
+      border-radius: 12px; padding: 1.5rem; margin: 1rem 0;
+    }
+    .story-box h3 { color: var(--dark); margin-top: 0; }
+    .story-box .label {
+      display: inline-block; background: var(--azure); color: white;
+      padding: 2px 10px; border-radius: 12px; font-size: .75rem;
+      font-weight: 600; margin-bottom: .5rem;
+    }
+
+    .pain-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem; margin: 1rem 0;
+    }
+    .pain-card {
+      background: #fff5f5; border-left: 4px solid var(--red);
+      padding: .8rem 1rem; border-radius: 0 8px 8px 0;
+    }
+    .pain-card .title { font-weight: 700; font-size: .9rem; color: var(--red); }
+    .pain-card .desc { font-size: .85rem; color: var(--dim); margin-top: 4px; }
+
+    .solution-card {
+      background: #f0fff4; border-left: 4px solid var(--green);
+      padding: .8rem 1rem; border-radius: 0 8px 8px 0;
+    }
+    .solution-card .title { font-weight: 700; font-size: .9rem; color: var(--green); }
+    .solution-card .desc { font-size: .85rem; color: var(--dim); margin-top: 4px; }
+
+    /* Architecture */
+    .arch-flow {
+      background: var(--code-bg); color: #e6edf3; padding: 1.2rem;
+      border-radius: 8px; font-family: 'SF Mono', Menlo, monospace;
+      font-size: .8rem; line-height: 1.6; margin: 1rem 0;
+      overflow-x: auto; white-space: pre;
+    }
+    .arch-flow .svc { color: #79c0ff; } .arch-flow .arrow { color: #ffa657; }
+    .arch-flow .label { color: #7ee787; } .arch-flow .dim { color: #8b949e; }
+
+    /* Why Microsoft table */
+    table {
+      width: 100%; border-collapse: collapse;
+      margin: 1rem 0; font-size: .95rem;
+    }
+    th { background: var(--dark); color: white; padding: 10px 12px; text-align: left; }
+    td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+    tr:nth-child(even) { background: var(--surface); }
+    p code, li code, td code {
+      background: var(--surface); padding: 2px 6px; border-radius: 4px;
+      border: 1px solid var(--border); color: var(--azure);
+      font-family: 'SF Mono', Menlo, monospace; font-size: .88em;
+    }
+
+    /* Demo section */
+    .demo-area {
+      background: white; border: 2px solid var(--azure);
+      border-radius: 12px; padding: 1.5rem; margin: 1.5rem 0;
+    }
+    .demo-area h3 { margin-top: 0; }
+    .query-input {
+      width: 100%; padding: 12px 16px; font-size: 1rem;
+      border: 2px solid var(--border); border-radius: 8px;
+      font-family: inherit; outline: none; transition: border-color .2s;
+    }
+    .query-input:focus { border-color: var(--azure); }
+    .query-btn {
+      margin-top: 8px; padding: 10px 24px;
+      background: var(--azure); color: white; border: none;
+      border-radius: 8px; font-size: 1rem; cursor: pointer;
+      font-weight: 600; transition: background .2s;
+    }
+    .query-btn:hover { background: var(--dark); }
+    .query-btn:disabled { background: #999; cursor: not-allowed; }
+    .sample-queries {
+      display: flex; flex-wrap: wrap; gap: 6px; margin: 8px 0;
+    }
+    .sample-btn {
+      padding: 4px 12px; background: var(--light); color: var(--azure);
+      border: 1px solid var(--azure); border-radius: 16px;
+      font-size: .82rem; cursor: pointer; font-family: inherit;
+    }
+    .sample-btn:hover { background: var(--azure); color: white; }
+
+    .result-panel {
+      margin-top: 1rem; display: none;
+    }
+    .result-panel.show { display: block; }
+    .result-meta {
+      background: var(--surface); padding: .8rem 1rem;
+      border-radius: 8px; font-size: .85rem; margin-bottom: 1rem;
+    }
+    .result-meta .tag {
+      display: inline-block; padding: 2px 8px; border-radius: 4px;
+      font-size: .75rem; font-weight: 600; margin-right: 4px;
+    }
+    .tag-search { background: var(--light); color: var(--azure); }
+    .tag-terms { background: #dafbe1; color: var(--green); }
+    .tag-tokens { background: #fff3cd; color: var(--orange); }
+    .tag-rewrite { background: #f0e6ff; color: #7c3aed; }
+    .result-answer {
+      background: white; border: 1px solid var(--border);
+      border-radius: 8px; padding: 1rem 1.2rem;
+      font-size: .95rem; white-space: pre-wrap;
+    }
+    .result-chunks {
+      margin-top: .8rem; font-size: .82rem; color: var(--dim);
+    }
+    .loading { text-align: center; padding: 2rem; color: var(--dim); }
+
+    .pipeline-step-item {
+      padding: 10px 14px; border-radius: 8px; margin: 6px 0;
+      transition: background .3s; border: 1px solid var(--border);
+      display: flex; align-items: flex-start; gap: 12px;
+    }
+    .pipeline-step-item.active { background: #fffbeb; border-color: var(--orange); }
+    .pipeline-step-item.done { background: #f0fdf4; border-color: var(--green); }
+    .pipeline-step-item.error { background: #fef2f2; border-color: var(--red); }
+    .pipeline-step-item .step-icon {
+      flex-shrink: 0; width: 24px; height: 24px; margin-top: 1px;
+    }
+    .pipeline-step-item .step-icon svg { width: 24px; height: 24px; }
+    .pipeline-step-item .step-body { flex: 1; }
+    .pipeline-step-item .step-title { font-weight: 700; font-size: .9rem; }
+    .pipeline-step-item .step-azure {
+      font-size: .75rem; color: var(--azure); font-weight: 600;
+      margin-top: 2px;
+    }
+    .pipeline-step-item .step-detail {
+      font-size: .82rem; color: var(--dim); margin-top: 4px; line-height: 1.5;
+    }
+    .pipeline-step-item .step-detail code {
+      background: var(--surface); padding: 1px 5px; border-radius: 3px;
+      font-size: .8em; border: 1px solid var(--border);
+    }
+
+    /* Stats */
+    .stat-row {
+      display: flex; flex-wrap: wrap; gap: .8rem; margin: 1rem 0;
+    }
+    .stat {
+      background: white; border: 1px solid var(--border);
+      border-radius: 8px; padding: .6rem 1rem; text-align: center;
+      flex: 1; min-width: 100px;
+    }
+    .stat .num { font-size: 1.4rem; font-weight: 700; color: var(--azure); }
+    .stat .lbl { font-size: .78rem; color: var(--dim); }
+
+    .methodology-box {
+      background: linear-gradient(135deg, var(--light), #fff);
+      border-left: 4px solid var(--azure); padding: 1rem 1.2rem;
+      border-radius: 0 8px 8px 0; margin: 1rem 0;
+    }
+
+    footer {
+      margin-top: 3rem; padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      color: var(--dim); font-size: .85rem; text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+<h1>政府法規 AI 知識庫</h1>
+<p class="subtitle">Azure 全雲端架構 — 公部門數位轉型 PoC</p>
+
+<!-- ===== 需求背景（故事線） ===== -->
+<h2>需求背景</h2>
+
+<div class="story-box">
+  <span class="label">假想情境</span>
+  <h3>數位發展部（moda）— 跨機關法規知識庫共用平台建置案</h3>
+  <p>
+    數位發展部推動政府機關數位轉型，發現各機關在執行業務時經常需要查閱大量法規、
+    行政命令與作業基準，但缺乏統一的智慧查詢工具。承辦人員只能逐條翻閱 PDF，
+    或私下使用 ChatGPT 得到不精確的解讀。moda 規劃建置一套
+    <strong>「政府法規 AI 知識庫共用平台」</strong>，
+    以標準化架構讓各機關將管轄法規匯入系統，提供承辦人員即時、精確的法規查詢服務。
+    本 PoC 以<strong>「金融機構辦理電子銀行業務安全控管作業基準」</strong>為試點法規，
+    驗證此架構能否確保 AI 回答中的法規術語 100% 保真，並符合政府資安規範。
+  </p>
+</div>
+
+<!-- ===== Live Demo ===== -->
+<h2>Live Demo — 直接體驗</h2>
+
+<div class="demo-area">
+  <h3>法規查詢（全程 Azure 雲端處理）</h3>
+  <p style="font-size:.9rem; color:var(--dim); margin-bottom: 12px;">
+    點擊查詢後，系統依序執行以下 pipeline，每一步都在 Azure 上完成：
+  </p>
+
+  <!-- Pipeline Steps Visualization -->
+  <div id="pipelineSteps" style="display:none; margin-bottom: 1rem;">
+    <div id="step1" class="pipeline-step-item">
+      <div class="step-icon" id="step1Icon"></div>
+      <div class="step-body">
+        <div class="step-title">Step 1 — Synonym Map 查詢改寫</div>
+        <div class="step-azure">Azure AI Search Synonym Maps</div>
+        <div class="step-detail" id="step1Detail"></div>
+      </div>
+    </div>
+    <div id="step2" class="pipeline-step-item">
+      <div class="step-icon" id="step2Icon"></div>
+      <div class="step-body">
+        <div class="step-title">Step 2 — Azure AI Search 混合檢索</div>
+        <div class="step-azure">Vector Search + BM25 + Metadata Filter + RRF Fusion + Semantic Ranker</div>
+        <div class="step-detail" id="step2Detail"></div>
+      </div>
+    </div>
+    <div id="step3" class="pipeline-step-item">
+      <div class="step-icon" id="step3Icon"></div>
+      <div class="step-body">
+        <div class="step-title">Step 3 — Cosmos DB 術語注入 + 知識圖譜擴展</div>
+        <div class="step-azure">Azure Cosmos DB (NoSQL) — Glossary + Knowledge Graph</div>
+        <div class="step-detail" id="step3Detail"></div>
+      </div>
+    </div>
+    <div id="step4" class="pipeline-step-item">
+      <div class="step-icon" id="step4Icon"></div>
+      <div class="step-body">
+        <div class="step-title">Step 4 — Azure OpenAI GPT-4o 生成回答</div>
+        <div class="step-azure">Azure OpenAI Service — GPT-4o + System Prompt (8 條術語保真規則)</div>
+        <div class="step-detail" id="step4Detail"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sample-queries">
+    <button class="sample-btn" onclick="setQuery('什麼是電子銀行？')">什麼是電子銀行？</button>
+    <button class="sample-btn" onclick="setQuery('網路銀行和行動銀行有什麼差別？')">網路銀行 vs 行動銀行</button>
+    <button class="sample-btn" onclick="setQuery('非約定轉帳需要什麼安全設計？')">非約定轉帳安全設計</button>
+    <button class="sample-btn" onclick="setQuery('端對端加密的要求是什麼？')">端對端加密要求</button>
+    <button class="sample-btn" onclick="setQuery('第三類數位存款帳戶的規定為何？')">第三類數位存款帳戶</button>
+  </div>
+
+  <input type="text" class="query-input" id="queryInput"
+         placeholder="輸入法規相關問題..." value="什麼是電子銀行？">
+  <br>
+  <button class="query-btn" id="queryBtn" onclick="submitQuery()">查詢</button>
+  <div id="noKeyWarning" style="display:none; margin-top:8px; padding:8px 12px; background:#fff3cd; border:1px solid #d97706; border-radius:6px; font-size:.85rem; color:#92400e;">
+    API Key required. Please use the full demo link with <code>?key=</code> parameter.
+  </div>
+
+  <div class="result-panel" id="resultPanel">
+    <div id="resultContent" style="display:none;">
+      <div class="result-meta" id="resultMeta"></div>
+      <div class="result-answer" id="resultAnswer"></div>
+      <div class="result-chunks" id="resultChunks"></div>
+    </div>
+  </div>
+</div>
+
+<h3>現有痛點</h3>
+<div class="pain-grid">
+  <div class="pain-card">
+    <div class="title">法規術語理解不一致</div>
+    <div class="desc">不同機關的承辦人員對同一法規術語的解讀不同。例如「電子銀行」常被誤解為「網路銀行」，實際上法規涵蓋 ATM、電話銀行等所有電子管道</div>
+  </div>
+  <div class="pain-card">
+    <div class="title">跨條文比對耗時</div>
+    <div class="desc">一個政策研擬可能涉及多條法規交叉引用（加密、風險分級、信賴等級、安全設計），承辦人員手動翻閱 PDF 比對需數天</div>
+  </div>
+  <div class="pain-card">
+    <div class="title">公務員私用 ChatGPT</div>
+    <div class="desc">承辦人員私下用通用 AI 查法規，但 AI 會用通俗說法取代法規專有名詞，產出看似合理但法律上不精確的解讀</div>
+  </div>
+  <div class="pain-card">
+    <div class="title">政府資安合規要求</div>
+    <div class="desc">政府機關系統須符合資通安全管理法，資料不得存放於未經核准的境外區域，需部署在通過認證的雲端環境</div>
+  </div>
+</div>
+
+<!-- ===== 解決方案 ===== -->
+<h2>解決方案：為什麼用微軟？</h2>
+
+<p>
+  公部門系統需要<strong>資料主權可控、企業級安全、政府合規認證</strong>。
+  以下說明每個技術需求為什麼選擇特定的 Azure 服務：
+</p>
+
+<table>
+  <tr>
+    <th>需求</th>
+    <th>為什麼需要</th>
+    <th>Azure 服務</th>
+    <th>為什麼選它</th>
+  </tr>
+  <tr>
+    <td><strong>混合檢索</strong></td>
+    <td>法規查詢同時需要精確術語匹配（「第八條第六款」）和語意理解（「轉帳安全要求」）</td>
+    <td><code>Azure AI Search</code></td>
+    <td>原生支援 Vector + BM25 + metadata filter 三路混合檢索，內建 RRF 融合和 Semantic Ranker（cross-encoder），不需自建排序邏輯</td>
+  </tr>
+  <tr>
+    <td><strong>術語保真</strong></td>
+    <td>「電子銀行」≠「網路銀行」，AI 回答必須使用法規原文定義，不得自行替換為通俗說法</td>
+    <td><code>AI Search Synonym Map</code><br>+ <code>Cosmos DB</code></td>
+    <td>Synonym Map 在查詢階段自動攔截禁用替代詞；Cosmos DB 存放 99 個術語的完整詞典，動態注入 System Prompt</td>
+  </tr>
+  <tr>
+    <td><strong>知識圖譜</strong></td>
+    <td>法規術語之間有上下位、依賴、易混淆等關係，查 A 時需要連帶提供 B 的定義</td>
+    <td><code>Cosmos DB</code><br>(graph traversal)</td>
+    <td>Serverless 計費，47 條關係的圖查詢成本趨近零。未來可升級為 Cosmos DB Gremlin API 或 Microsoft GraphRAG</td>
+  </tr>
+  <tr>
+    <td><strong>LLM 生成</strong></td>
+    <td>需要理解繁體中文法規、精確引用條文、遵守術語保真規則</td>
+    <td><code>Azure OpenAI GPT-4o</code></td>
+    <td>繁中能力最佳的 LLM 之一；部署在 Azure 上資料不離開企業邊界；內建 Content Safety 過濾</td>
+  </tr>
+  <tr>
+    <td><strong>Embedding</strong></td>
+    <td>將法規條文和查詢轉為向量，實現語意搜尋</td>
+    <td><code>Azure OpenAI<br>text-embedding-3-large</code></td>
+    <td>3072 維度，中文語意理解優秀，與 AI Search 原生整合</td>
+  </tr>
+  <tr>
+    <td><strong>API 服務化</strong></td>
+    <td>系統需對外提供 HTTP API，供各銀行整合至內部系統</td>
+    <td><code>Azure Functions</code></td>
+    <td>Serverless，按呼叫計費，不查詢時零成本；自動擴縮容</td>
+  </tr>
+  <tr>
+    <td><strong>資料主權</strong></td>
+    <td>政府法規資料不得離開核准區域</td>
+    <td>Azure Region: <code>East US</code></td>
+    <td>所有資源部署在同一區域，資料不跨區傳輸。正式環境可選 <code>East Asia</code>（香港）</td>
+  </tr>
+</table>
+
+<!-- ===== 全雲端架構 ===== -->
+<h2>全雲端架構</h2>
+
+<p>所有元件皆部署於 Azure，零地端依賴。使用者透過瀏覽器存取，所有運算和資料儲存均在雲端完成。</p>
+
+<div class="arch-flow"><span class="dim">使用者（瀏覽器 / 各機關內部系統）</span>
+        <span class="arrow">│</span>
+        <span class="arrow">▼</span>
+<span class="svc">Azure Functions</span> <span class="label">(Consumption Plan, Serverless)</span>
+<span class="dim">  Python 3.11 runtime | HTTP API | Function Key 認證</span>
+        <span class="arrow">│</span>
+   <span class="arrow">┌────────────┼────────────┐</span>
+   <span class="arrow">▼</span>            <span class="arrow">▼</span>            <span class="arrow">▼</span>
+<span class="svc">Azure AI Search</span>   <span class="svc">Cosmos DB</span>      <span class="svc">Azure OpenAI</span>
+<span class="label">  Free tier   </span>   <span class="label">  Serverless  </span>   <span class="label">  S0 (pay-per-use)  </span>
+<span class="dim"> 63 chunks indexed</span>  <span class="dim"> 99 terms (glossary)</span> <span class="dim"> text-embedding-3-large</span>
+<span class="dim"> Vector + BM25    </span>  <span class="dim"> 47 relations (graph)</span><span class="dim"> GPT-4o (2024-11-20)</span>
+<span class="dim"> Synonym Map (5)  </span>  <span class="dim"> NoSQL + graph query </span><span class="dim"> 10K TPM rate limit</span>
+<span class="dim"> Semantic Ranker  </span>
+<span class="dim"> zh-Hant.lucene   </span>
+        <span class="arrow">│</span>
+        <span class="arrow">▼</span>
+<span class="svc">Storage Account</span> <span class="label">(Standard LRS)</span>  <span class="svc">Application Insights</span> <span class="label">(Free 5GB/月)</span>
+<span class="dim">Functions runtime 儲存</span>           <span class="dim">API 監控 + 日誌</span>
+
+<span class="label">Pipeline: Query → Synonym Rewrite → Hybrid Search (RRF) → Cosmos DB Term Injection → GPT-4o → Answer</span></div>
+
+<div class="stat-row">
+  <div class="stat"><div class="num">6</div><div class="lbl">Azure 服務</div></div>
+  <div class="stat"><div class="num">63</div><div class="lbl">法規 Chunks</div></div>
+  <div class="stat"><div class="num">99</div><div class="lbl">術語定義</div></div>
+  <div class="stat"><div class="num">47</div><div class="lbl">知識圖譜關係</div></div>
+  <div class="stat"><div class="num">5</div><div class="lbl">Synonym 規則</div></div>
+</div>
+
+<!-- ===== 循序圖 ===== -->
+<h2>查詢處理循序圖 (Sequence Diagram)</h2>
+<p>一次查詢的完整呼叫流程，展示各 Azure 服務之間的互動：</p>
+
+<div style="overflow-x:auto;">
+<svg viewBox="0 0 900 620" xmlns="http://www.w3.org/2000/svg" style="max-width:900px; width:100%; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+  <!-- Participants -->
+  <rect x="30" y="10" width="100" height="36" rx="6" fill="#f6f8fa" stroke="#d1d9e0" stroke-width="1.5"/>
+  <text x="80" y="33" text-anchor="middle" font-size="12" font-weight="600" fill="#1b1b1b">Browser</text>
+
+  <rect x="195" y="10" width="120" height="36" rx="6" fill="#deecf9" stroke="#0078d4" stroke-width="1.5"/>
+  <text x="255" y="33" text-anchor="middle" font-size="11" font-weight="600" fill="#002050">Azure Functions</text>
+
+  <rect x="380" y="10" width="120" height="36" rx="6" fill="#deecf9" stroke="#0078d4" stroke-width="1.5"/>
+  <text x="440" y="33" text-anchor="middle" font-size="11" font-weight="600" fill="#002050">AI Search</text>
+
+  <rect x="565" y="10" width="110" height="36" rx="6" fill="#deecf9" stroke="#0078d4" stroke-width="1.5"/>
+  <text x="620" y="33" text-anchor="middle" font-size="11" font-weight="600" fill="#002050">Cosmos DB</text>
+
+  <rect x="740" y="10" width="120" height="36" rx="6" fill="#deecf9" stroke="#0078d4" stroke-width="1.5"/>
+  <text x="800" y="33" text-anchor="middle" font-size="11" font-weight="600" fill="#002050">Azure OpenAI</text>
+
+  <!-- Lifelines -->
+  <line x1="80" y1="46" x2="80" y2="600" stroke="#d1d9e0" stroke-width="1" stroke-dasharray="4 3"/>
+  <line x1="255" y1="46" x2="255" y2="600" stroke="#0078d4" stroke-width="1" stroke-dasharray="4 3"/>
+  <line x1="440" y1="46" x2="440" y2="600" stroke="#0078d4" stroke-width="1" stroke-dasharray="4 3"/>
+  <line x1="620" y1="46" x2="620" y2="600" stroke="#0078d4" stroke-width="1" stroke-dasharray="4 3"/>
+  <line x1="800" y1="46" x2="800" y2="600" stroke="#0078d4" stroke-width="1" stroke-dasharray="4 3"/>
+
+  <!-- Step labels -->
+  <rect x="0" y="62" width="24" height="18" rx="9" fill="#0078d4"/>
+  <text x="12" y="75" text-anchor="middle" font-size="10" font-weight="700" fill="white">1</text>
+
+  <rect x="0" y="132" width="24" height="18" rx="9" fill="#0078d4"/>
+  <text x="12" y="145" text-anchor="middle" font-size="10" font-weight="700" fill="white">2</text>
+
+  <rect x="0" y="222" width="24" height="18" rx="9" fill="#0078d4"/>
+  <text x="12" y="235" text-anchor="middle" font-size="10" font-weight="700" fill="white">3</text>
+
+  <rect x="0" y="342" width="24" height="18" rx="9" fill="#0078d4"/>
+  <text x="12" y="355" text-anchor="middle" font-size="10" font-weight="700" fill="white">4</text>
+
+  <rect x="0" y="462" width="24" height="18" rx="9" fill="#0078d4"/>
+  <text x="12" y="475" text-anchor="middle" font-size="10" font-weight="700" fill="white">5</text>
+
+  <!-- 1. POST /api/query -->
+  <line x1="80" y1="70" x2="245" y2="70" stroke="#1b1b1b" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="162" y="64" text-anchor="middle" font-size="10" fill="#1b1b1b" font-weight="600">POST /api/query</text>
+  <text x="162" y="88" text-anchor="middle" font-size="9" fill="#57606a">Function Key auth + rate limit + budget check</text>
+
+  <!-- 2. Synonym Map rewrite -->
+  <rect x="230" y="108" width="50" height="40" fill="#fffbeb" stroke="#d97706" stroke-width="1" rx="3"/>
+  <line x1="255" y1="140" x2="255" y2="140" stroke="#d97706"/>
+  <text x="340" y="125" font-size="10" fill="#57606a">Synonym Map rewrite</text>
+  <text x="340" y="140" font-size="9" fill="#9ca3af">"network banking" → "electronic banking"</text>
+
+  <!-- 3a. Hybrid Search (embedding) -->
+  <line x1="255" y1="170" x2="790" y2="170" stroke="#0078d4" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+  <text x="520" y="164" text-anchor="middle" font-size="10" fill="#0078d4">embed query (text-embedding-3-large)</text>
+  <line x1="790" y1="185" x2="265" y2="185" stroke="#0078d4" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arrowBlue)"/>
+  <text x="520" y="198" text-anchor="middle" font-size="9" fill="#9ca3af">query vector (3072 dim)</text>
+
+  <!-- 3b. Search -->
+  <line x1="255" y1="230" x2="430" y2="230" stroke="#0078d4" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+  <text x="340" y="224" text-anchor="middle" font-size="10" fill="#0078d4">hybrid search</text>
+  <rect x="415" y="240" width="50" height="55" fill="#deecf9" stroke="#0078d4" stroke-width="1" rx="3"/>
+  <text x="520" y="253" font-size="9" fill="#57606a">Vector + BM25 + Metadata</text>
+  <text x="520" y="266" font-size="9" fill="#57606a">→ RRF Fusion (k=60)</text>
+  <text x="520" y="279" font-size="9" fill="#57606a">→ Semantic Ranker rerank</text>
+  <line x1="430" y1="300" x2="265" y2="300" stroke="#0078d4" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arrowBlue)"/>
+  <text x="340" y="314" text-anchor="middle" font-size="9" fill="#9ca3af">top 5 chunks + scores</text>
+
+  <!-- 4a. Cosmos DB glossary -->
+  <line x1="255" y1="350" x2="610" y2="350" stroke="#0078d4" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+  <text x="430" y="344" text-anchor="middle" font-size="10" fill="#0078d4">query glossary + knowledge graph</text>
+  <rect x="595" y="358" width="50" height="40" fill="#deecf9" stroke="#0078d4" stroke-width="1" rx="3"/>
+  <text x="700" y="372" font-size="9" fill="#57606a">term lookup + 1-hop expansion</text>
+  <text x="700" y="385" font-size="9" fill="#57606a">3-tier injection (Full/Med/Short)</text>
+  <line x1="610" y1="403" x2="265" y2="403" stroke="#0078d4" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arrowBlue)"/>
+  <text x="430" y="417" text-anchor="middle" font-size="9" fill="#9ca3af">term definitions + relations</text>
+
+  <!-- 5. GPT-4o generation -->
+  <line x1="255" y1="440" x2="790" y2="440" stroke="#0078d4" stroke-width="1.5" marker-end="url(#arrowBlue)"/>
+  <text x="520" y="434" text-anchor="middle" font-size="10" fill="#0078d4">GPT-4o (system prompt + terms + chunks + query)</text>
+  <rect x="775" y="448" width="50" height="35" fill="#deecf9" stroke="#0078d4" stroke-width="1" rx="3"/>
+  <text x="720" y="463" text-anchor="end" font-size="9" fill="#57606a">8 term-fidelity rules</text>
+  <text x="720" y="476" text-anchor="end" font-size="9" fill="#57606a">article citation required</text>
+  <line x1="790" y1="488" x2="265" y2="488" stroke="#0078d4" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arrowBlue)"/>
+  <text x="520" y="502" text-anchor="middle" font-size="9" fill="#9ca3af">answer + usage tokens</text>
+
+  <!-- 6. Response -->
+  <line x1="255" y1="530" x2="90" y2="530" stroke="#0e8a16" stroke-width="1.5" stroke-dasharray="5 3" marker-end="url(#arrowGreen)"/>
+  <text x="172" y="524" text-anchor="middle" font-size="10" fill="#0e8a16" font-weight="600">JSON response</text>
+  <text x="172" y="548" text-anchor="middle" font-size="9" fill="#9ca3af">answer + search results + terms + usage + budget</text>
+
+  <!-- Arrow markers -->
+  <defs>
+    <marker id="arrow" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#1b1b1b"/></marker>
+    <marker id="arrowBlue" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#0078d4"/></marker>
+    <marker id="arrowGreen" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#0e8a16"/></marker>
+  </defs>
+</svg>
+</div>
+
+<!-- ===== 方法論 ===== -->
+<h2>術語保真方法論</h2>
+
+<div class="methodology-box">
+  本系統基於自研的<strong>「企業知識庫術語保真方法論 v2.1」</strong>，確保 AI 回答中的專有名詞保真度接近 100%。
+  學術依據：HalluGraph (arxiv 2512.01659)、CRAG (arxiv 2401.15884)、SAT-Graph RAG (arxiv 2505.00039)。
+  已通過金融法規試點驗證 — 6 題術語保真測試全數通過。
+</div>
+
+<h3>核心機制</h3>
+<table>
+  <tr><th>機制</th><th>作用</th><th>Azure 服務</th></tr>
+  <tr>
+    <td><strong>Synonym Map 查詢改寫</strong></td>
+    <td>自動將「網路銀行」改寫為「電子銀行」，在查詢階段就攔截錯誤術語</td>
+    <td>AI Search Synonym Map</td>
+  </tr>
+  <tr>
+    <td><strong>三路混合檢索 + RRF</strong></td>
+    <td>Vector（語意）+ BM25（關鍵字）+ Metadata（術語 ID 精確匹配），定義型 chunk 加權</td>
+    <td>AI Search Hybrid + Semantic Ranker</td>
+  </tr>
+  <tr>
+    <td><strong>動態術語注入</strong></td>
+    <td>根據查詢偵測相關術語 → 知識圖譜 1-hop 擴展 → 三級格式注入 System Prompt</td>
+    <td>Cosmos DB (glossary + graph)</td>
+  </tr>
+  <tr>
+    <td><strong>術語保真 System Prompt</strong></td>
+    <td>8 條規則：禁用替代詞、首次出現全稱格式、條文引用、不確定性三級判斷</td>
+    <td>Azure OpenAI GPT-4o</td>
+  </tr>
+</table>
+
+<!-- Live Demo moved to top -->
+
+<!-- ===== 成本 ===== -->
+<h2>成本分析</h2>
+<p>全部採用 Serverless / pay-per-use 方案，不使用時幾乎不產生費用。已設定每月 $3 USD 預算警示。</p>
+<table>
+  <tr><th>Azure 服務</th><th>方案</th><th>計費方式</th><th>閒置月費</th><th>Demo 月費</th></tr>
+  <tr><td>Azure AI Search</td><td>Free tier</td><td>免費額度</td><td>$0</td><td>$0</td></tr>
+  <tr><td>Azure OpenAI (GPT-4o)</td><td>Standard, 10K TPM</td><td>$2.5/1M input + $10/1M output tokens</td><td>$0</td><td>~$1-3</td></tr>
+  <tr><td>Azure OpenAI (Embedding)</td><td>Standard, 10K TPM</td><td>$0.13/1M tokens</td><td>$0</td><td>~$0.01</td></tr>
+  <tr><td>Cosmos DB</td><td>Serverless</td><td>$0.25/1M RU</td><td>$0</td><td>~$0.01</td></tr>
+  <tr><td>Azure Functions</td><td>Consumption (Y1)</td><td>$0.20/1M executions</td><td>$0</td><td>~$0</td></tr>
+  <tr><td>Storage Account</td><td>Standard LRS</td><td>$0.018/GB/月</td><td>$0.01</td><td>$0.01</td></tr>
+  <tr><td>Application Insights</td><td>Free tier (5GB/月)</td><td>免費額度</td><td>$0</td><td>$0</td></tr>
+  <tr style="font-weight:700; background:#f0fdf4;">
+    <td>合計（6 項服務）</td><td></td><td></td><td>~$0.01/月</td><td>< $3/月</td>
+  </tr>
+</table>
+
+<footer>
+  Ohara Lab — 企業知識庫術語保真方法論 v2.1<br>
+  Azure 全雲端架構 PoC — 金融法規 AI 合規助理<br>
+  2026-04
+</footer>
+
+<script src="demo.js"></script>
+</body>
+</html>

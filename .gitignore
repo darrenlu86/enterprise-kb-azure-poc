@@ -1,0 +1,8 @@
+.venv/
+.chroma/
+.env
+__pycache__/
+*.pyc
+.DS_Store
+.python_packages/
+local.settings.json

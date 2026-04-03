@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>企業知識庫 PoC — Azure AI Stack 本地模擬</title>
+  <style>
+    :root {
+      --azure-blue: #0078d4;
+      --azure-dark: #002050;
+      --azure-light: #deecf9;
+      --surface: #f6f8fa;
+      --border: #d1d9e0;
+      --text: #1b1b1b;
+      --text-secondary: #57606a;
+      --green: #0e8a16;
+      --orange: #d97706;
+      --red: #cf222e;
+      --code-bg: #161b22;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Noto Sans TC, sans-serif;
+      line-height: 1.7;
+      color: var(--text);
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 2rem 1.5rem 4rem;
+    }
+
+    h1 { font-size: 2rem; margin-bottom: 0.5rem; color: var(--azure-dark); }
+    h2 {
+      font-size: 1.35rem;
+      margin-top: 2.5rem;
+      margin-bottom: 1rem;
+      padding-bottom: 0.5rem;
+      border-bottom: 2px solid var(--azure-blue);
+      color: var(--azure-dark);
+    }
+    h3 { font-size: 1.1rem; margin-top: 1.5rem; margin-bottom: 0.5rem; }
+
+    p { margin-bottom: 1rem; }
+
+    .subtitle {
+      color: var(--text-secondary);
+      font-size: 1.05rem;
+      margin-bottom: 2rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-right: 4px;
+      vertical-align: middle;
+    }
+    .badge-azure { background: var(--azure-light); color: var(--azure-blue); }
+    .badge-local { background: #dafbe1; color: var(--green); }
+    .badge-mock { background: #fff3cd; color: var(--orange); }
+
+    .arch-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0 1.5rem;
+      font-size: 0.95rem;
+    }
+    .arch-table th {
+      background: var(--azure-dark);
+      color: white;
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 600;
+    }
+    .arch-table td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .arch-table tr:nth-child(even) { background: var(--surface); }
+    .arch-table .arrow { color: var(--azure-blue); font-weight: bold; }
+
+    pre {
+      background: var(--code-bg);
+      color: #e6edf3;
+      padding: 1rem 1.2rem;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      margin: 1rem 0;
+    }
+    code {
+      font-family: 'SF Mono', Menlo, monospace;
+      font-size: 0.88em;
+    }
+    p code, li code, td code {
+      background: var(--surface);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      color: var(--azure-blue);
+    }
+
+    .pipeline {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0;
+      margin: 1.5rem 0;
+      align-items: stretch;
+    }
+    .pipeline-step {
+      flex: 1;
+      min-width: 140px;
+      background: white;
+      border: 2px solid var(--azure-blue);
+      border-radius: 8px;
+      padding: 12px;
+      text-align: center;
+      position: relative;
+    }
+    .pipeline-step .step-num {
+      display: block;
+      font-size: 0.7rem;
+      color: white;
+      background: var(--azure-blue);
+      border-radius: 10px;
+      width: 20px;
+      height: 20px;
+      line-height: 20px;
+      margin: 0 auto 6px;
+    }
+    .pipeline-step .step-title {
+      font-weight: 700;
+      font-size: 0.85rem;
+      margin-bottom: 4px;
+    }
+    .pipeline-step .step-detail {
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+    }
+    .pipeline-arrow {
+      display: flex;
+      align-items: center;
+      padding: 0 4px;
+      color: var(--azure-blue);
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin: 1rem 0 1.5rem;
+    }
+    .stat-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+      text-align: center;
+    }
+    .stat-card .stat-num {
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--azure-blue);
+    }
+    .stat-card .stat-label {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .demo-output {
+      background: var(--code-bg);
+      color: #7ee787;
+      padding: 1rem 1.2rem;
+      border-radius: 8px;
+      font-family: 'SF Mono', Menlo, monospace;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      margin: 1rem 0;
+    }
+    .demo-output .dim { color: #8b949e; }
+    .demo-output .highlight { color: #ffa657; }
+    .demo-output .blue { color: #79c0ff; }
+    .demo-output .white { color: #e6edf3; }
+
+    .feature-list {
+      list-style: none;
+      padding: 0;
+    }
+    .feature-list li {
+      padding: 8px 0 8px 28px;
+      position: relative;
+      border-bottom: 1px solid var(--surface);
+    }
+    .feature-list li::before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: var(--green);
+      font-weight: bold;
+    }
+
+    .methodology-box {
+      background: linear-gradient(135deg, var(--azure-light), #fff);
+      border-left: 4px solid var(--azure-blue);
+      padding: 1rem 1.2rem;
+      border-radius: 0 8px 8px 0;
+      margin: 1rem 0;
+    }
+
+    .file-tree {
+      font-family: 'SF Mono', Menlo, monospace;
+      font-size: 0.85rem;
+      background: var(--surface);
+      padding: 1rem;
+      border-radius: 8px;
+      line-height: 1.8;
+    }
+    .file-tree .dir { color: var(--azure-blue); font-weight: bold; }
+    .file-tree .file { color: var(--text); }
+    .file-tree .desc { color: var(--text-secondary); font-size: 0.8em; }
+
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>企業知識庫 PoC</h1>
+  <p class="subtitle">
+    Azure AI Stack 本地模擬 — 基於「術語保真方法論 v2.1」的金融法規知識庫
+  </p>
+
+  <!-- ===== 專案概述 ===== -->
+  <h2>專案概述</h2>
+  <p>
+    本 PoC 將自主研發的<strong>「企業知識庫術語保真方法論」</strong>��地為可運行的 RAG 系統，
+    採用與 <strong>Microsoft Azure AI</strong> 完全對應的技術架構，在本地端以開源工具模擬 Azure 服務，
+    驗證方法論在微軟生態系中的可行性。
+  </p>
+
+  <div class="methodology-box">
+    <strong>方法論核心價值：</strong>企業專有名詞在 AI 知識庫中的保真度接近 100%。
+    已通過金融法規試點驗證 — 99 個術語、63 個 chunk、6 題術語保真測試全數通過。
+    學術依據：HalluGraph (arxiv 2512.01659)、CRAG (arxiv 2401.15884)、SAT-Graph RAG (arxiv 2505.00039)。
+  </div>
+
+  <!-- ===== 資料規模 ===== -->
+  <h2>試點資料規模</h2>
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-num">63</div>
+      <div class="stat-label">法規 Chunks<br>(本文 40 + 附錄 23)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">99</div>
+      <div class="stat-label">術語定義<br>(A 層 48 + B 層 14 + C 層 37)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">47</div>
+      <div class="stat-label">知識圖譜關係<br>(6 種關係類型)</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">5</div>
+      <div class="stat-label">Synonym Map 規則<br>(禁用替代詞自動改寫)</div>
+    </div>
+  </div>
+  <p>
+    試點文件：<strong>金融機構辦理電子銀行業務安全控管作業基準</strong>（1150107 版）<br>
+    發布機構：中華民國銀行商業同業公會���國聯合會 ｜ 核備機關：金融監督管理委員會
+  </p>
+
+  <!-- ===== 架構對照 ===== -->
+  <h2>Azure AI 服務對照</h2>
+  <table class="arch-table">
+    <thead>
+      <tr>
+        <th>Azure 服務</th>
+        <th></th>
+        <th>本地模擬</th>
+        <th>對應能力</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>
+          <span class="badge badge-azure">Azure</span>
+          Azure AI Search
+        </td>
+        <td class="arrow">→</td>
+        <td><span class="badge badge-local">Local</span> ChromaDB + RRF</td>
+        <td>混合檢索 (Vector + BM25 + Metadata) + Reciprocal Rank Fusion</td>
+      </tr>
+      <tr>
+        <td>
+          <span class="badge badge-azure">Azure</span>
+          AI Search Synonym Maps
+        </td>
+        <td class="arrow">→</td>
+        <td><span class="badge badge-local">Local</span> Glossary-based rewrite</td>
+        <td>查詢改寫：禁用替代詞自動轉換為正確術語</td>
+      </tr>
+      <tr>
+        <td>
+          <span class="badge badge-azure">Azure</span>
+          AI Search Semantic Ranker
+        </td>
+        <td class="arrow">→</td>
+        <td><span class="badge badge-local">Local</span> Definition chunk boost</td>
+        <td>定義型 chunk 加權 1.5x（模擬 cross-encoder rerank）</td>
+      </tr>
+      <tr>
+        <td>
+          <span class="badge badge-azure">Azure</span>
+          Azure OpenAI Embeddings
+        </td>
+        <td class="arrow">→</td>
+        <td><span class="badge badge-mock">Mock</span> Hash-based / OpenAI API</td>
+        <td>text-embedding-3-large (3072 dim)</td>
+      </tr>
+      <tr>
+        <td>
+          <span class="badge badge-azure">Azure</span>
+          Azure OpenAI GPT-4o
+        </td>
+        <td class="arrow">→</td>
+        <td><span class="badge badge-mock">Mock</span> Mock output / OpenAI API</td>
+        <td>LLM 生成，搭配術語保真 System Prompt</td>
+      </tr>
+      <tr>
+        <td>
+          <span class="badge badge-azure">Azure</span>
+          Cosmos DB (NoSQL)
+        </td>
+        <td class="arrow">→</td>
+        <td><span class="badge badge-local">Local</span> JSON → in-memory dict</td>
+        <td>術語詞典儲存與查詢</td>
+      </tr>
+      <tr>
+        <td>
+          <span class="badge badge-azure">Azure</span>
+          Microsoft GraphRAG
+        </td>
+        <td class="arrow">→</td>
+        <td><span class="badge badge-local">Local</span> JSON → graph traversal</td>
+        <td>知識圖譜：術語關係擴展��1-hop neighbors）</td>
+      </tr>
+      <tr>
+        <td>
+          <span class="badge badge-azure">Azure</span>
+          AI Foundry Prompt Flow
+        </td>
+        <td class="arrow">→</td>
+        <td><span class="badge badge-local">Local</span> Python pipeline</td>
+        <td>端到端編排：檢索 → 術語注入 → 生成</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ===== Pipeline ===== -->
+  <h2>查詢處理 Pipeline</h2>
+  <div class="pipeline">
+    <div class="pipeline-step">
+      <span class="step-num">1</span>
+      <div class="step-title">Query Rewrite</div>
+      <div class="step-detail">Synonym Map<br>禁用詞替換</div>
+    </div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-step">
+      <span class="step-num">2</span>
+      <div class="step-title">Hybrid Search</div>
+      <div class="step-detail">Vector 0.3<br>BM25 0.3<br>Term Match 0.4</div>
+    </div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-step">
+      <span class="step-num">3</span>
+      <div class="step-title">Term Injection</div>
+      <div class="step-detail">Graph 擴展<br>Token 預算裁切<br>三級格式</div>
+    </div>
+    <div class="pipeline-arrow">→</div>
+    <div class="pipeline-step">
+      <span class="step-num">4</span>
+      <div class="step-title">LLM Generation</div>
+      <div class="step-detail">System Prompt<br>+ 術語保真規則<br>+ 條文引用</div>
+    </div>
+  </div>
+
+  <!-- ===== 方法論核心機制 ===== -->
+  <h2>方法論核心機制</h2>
+
+  <h3>1. 術語感知切分 (Term-Aware Chunking)</h3>
+  <p>
+    依法規天然結構（條→款→目）切分，非固定 token 數。每個 chunk 保留術語的完整定義���下文，
+    定義段落標記為「不可切割」。平均 chunk 長度 811 字元，每 chunk 平均包含 3.2 個術語。
+  </p>
+
+  <h3>2. ���層術語詞典</h3>
+  <ul class="feature-list">
+    <li><strong>層級 A</strong> — 法定明確定義術語（48 個）：逐字抄錄，不得改寫</li>
+    <li><strong>層級 B</strong> — 隱含核心概念（14 個）：從多條文歸納，AI 初稿 + SME 審核</li>
+    <li><strong>層級 C</strong> — 附錄具體實例（37 個）：AI 批次生成</li>
+  </ul>
+
+  <h3>3. 混合檢索 + RRF 融合</h3>
+  <p>
+    三路檢索同時執行，以 <strong>Reciprocal Rank Fusion (k=60)</strong> 合併結果：
+  </p>
+  <ul class="feature-list">
+    <li><strong>Vector Search (權重 0.3)</strong> — 語意相似度，text-embedding-3-large</li>
+    <li><strong>Keyword Search (權重 0.3)</strong> — 精確字詞匹配，相當於 BM25</li>
+    <li><strong>Term Metadata Match (權重 0.4)</strong> — 術語 ID 精確匹配 + 定義 chunk 加權 1.5x</li>
+  </ul>
+
+  <h3>4. 動態術語注入 + Token 預算管理</h3>
+  <p>
+    根據查詢和檢索結果，動態選擇相關術語注入 System Prompt：
+  </p>
+  <ul class="feature-list">
+    <li><strong>Direct Hit</strong> — 查詢中直接出現的術語 → Full 格式（定義 + 差異 + 禁用詞）</li>
+    <li><strong>Indirect</strong> — 檢索結果中出現的術語 → Medium 格式（定義前 150 字）</li>
+    <li><strong>Background</strong> — 知識圖譜 1-hop 擴展 → Short 格式（60 字摘要）</li>
+  </ul>
+  <p>
+    總預算 6,000 tokens，按優先級依序分��直到耗盡。
+  </p>
+
+  <h3>5. Synonym Map 查詢改寫</h3>
+  <p>
+    從術語詞典的 <code>prohibitedAlternatives</code> 自動建立對照表，在查詢階段攔截禁用替代詞：
+  </p>
+  <pre>「網路銀行」 → 「電子銀行」
+「線上銀行」 → 「電子銀行」
+「數位銀行」 → 「電子銀行」
+「手機銀行」 → 「行動銀行」
+「密碼」     → 依情境區分「固定密碼」/「一次性密碼」</pre>
+
+  <!-- ===== Demo 輸出 ===== -->
+  <h2>Demo 執行結果</h2>
+  <p>以下為實際 PoC 執行輸出（Mock 模式，未呼叫 OpenAI API）：</p>
+
+  <h3>查詢一：「什麼是電子銀行？」</h3>
+  <div class="demo-output"><span class="dim">============================================================</span>
+<span class="highlight">Query: 什麼是電子銀行？  [MOCK]</span>
+<span class="dim">============================================================</span>
+
+<span class="blue">[1/4] Hybrid Search (Azure AI Search simulation)...</span>
+  → CHK-FNEBANK-ART02-SEC01 (第二條) score=0.0158 via=vector,keyword,term_match
+  → CHK-FNEBANK-ART08-SEC06 (第八條) score=0.0112 via=keyword,term_match
+  → CHK-FNEBANK-ART01     (第一條) score=0.0111 via=keyword,term_match
+
+<span class="blue">[2/4] Term Detection + Graph Expansion...</span>
+  <span class="white">Term injection: direct=1, indirect=18, background=9 (1,967 tokens / 6,000 budget)</span>
+
+<span class="blue">[3/4] Prompt Assembly...</span>
+  <span class="white">Total prompt tokens: ~8,235</span>
+
+<span class="blue">[4/4] LLM Generation (Azure OpenAI simulation)...</span></div>
+
+  <h3>查詢二：「網路銀行和行動銀行有什麼差別？」</h3>
+  <div class="demo-output"><span class="highlight">Query: 網路銀行和行動銀行有什麼差別？  [MOCK]</span>
+
+<span class="blue">[1/4] Hybrid Search...</span>
+  <span class="white">Query rewriting: '網路銀行' → '電子銀行'</span>  ← Synonym Map 攔截禁用替代詞
+  → CHK-FNEBANK-ART08-SEC06 (第八條) score=0.0156
+  → CHK-FNEBANK-ART02-SEC01 (第二條) score=0.0113
+  → CHK-FNEBANK-ART07-SEC01 (第七條) score=0.0111
+
+<span class="blue">[2/4] Term Detection + Graph Expansion...</span>
+  <span class="white">Term injection: direct=0, indirect=25, background=8 (2,133 tokens)</span></div>
+
+  <!-- ===== 專案結構 ===== -->
+  <h2>專案結構</h2>
+  <div class="file-tree">
+<span class="dir">enterprise-kb-azure-poc/</span>
+├── <span class="file">main.py</span>           <span class="desc">— 入口：index / query / demo 指令</span>
+├── <span class="file">config.py</span>         <span class="desc">— 設定��路徑、模型、權重參數</span>
+├── <span class="file">data_loader.py</span>    <span class="desc">— 載入 chunks + glossary + knowledge graph</span>
+├── <span class="file">indexer.py</span>        <span class="desc">— ChromaDB 索引建立 (← Azure AI Search Indexer)</span>
+├── <span class="file">search.py</span>         <span class="desc">— 混合檢索 + RRF 融合 (← Azure AI Search)</span>
+├── <span class="file">term_injection.py</span> <span class="desc">— 動態術語注入 + Token 預算管理</span>
+├── <span class="file">prompt_builder.py</span> <span class="desc">— System Prompt 組裝 (← Prompt Flow)</span>
+├── <span class="file">generate.py</span>       <span class="desc">— LLM 生成 (← Azure OpenAI)</span>
+└── <span class="file">requirements.txt</span>  <span class="desc">— chromadb, openai, tiktoken</span>
+  </div>
+
+  <!-- ===== 快速啟動 ===== -->
+  <h2>快速啟動</h2>
+  <pre><span style="color:#8b949e"># 1. 安裝依賴</span>
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+<span style="color:#8b949e"># 2. 建立索���（Mock ���式，無需 API Key）</span>
+python main.py index --mock
+
+<span style="color:#8b949e"># 3. 互動式查詢</span>
+python main.py demo --mock
+
+<span style="color:#8b949e"># 4. 正式模式（需要 OpenAI API Key）</span>
+export OPENAI_API_KEY=sk-...
+python main.py index
+python main.py demo</pre>
+
+  <!-- ===== 遷移到 Azure ===== -->
+  <h2>遷移到 Azure 的路徑</h2>
+  <p>本 PoC 的每個元件都設計為可直接替換為 Azure 服務：</p>
+  <table class="arch-table">
+    <thead>
+      <tr><th>步驟</th><th>動作</th><th>預估工時</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>1</td>
+        <td>建立 Azure AI Search 索引，匯入 63 chunks + embeddings + metadata</td>
+        <td>半天</td>
+      </tr>
+      <tr>
+        <td>2</td>
+        <td>Cosmos DB 匯入 glossary + knowledge graph</td>
+        <td>半天</td>
+      </tr>
+      <tr>
+        <td>3</td>
+        <td>設定 Azure AI Search Synonym Maps（從 glossary 自動生成）</td>
+        <td>2 小時</td>
+      </tr>
+      <tr>
+        <td>4</td>
+        <td>部署 Azure OpenAI (GPT-4o + text-embedding-3-large)</td>
+        <td>1 小時</td>
+      </tr>
+      <tr>
+        <td>5</td>
+        <td>將 <code>generate.py</code> 切換至 <code>AzureOpenAI</code> client（改 3 行）</td>
+        <td>10 分鐘</td>
+      </tr>
+      <tr>
+        <td>6</td>
+        <td>（選配）Azure AI Foundry Prompt Flow 視覺化編排</td>
+        <td>1 天</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p><strong>預估 Azure 月費（PoC 等級）：</strong>$25–130 USD（Search Free/Basic + OpenAI Pay-as-you-go + Cosmos Serverless）</p>
+
+  <footer>
+    <p>
+      Ohara Lab — 企業知識庫術語保真方法論 v2.1<br>
+      試點文件：金融機構辦理電子銀行業務安全控管作業基準（1150107 版）<br>
+      2026-04
+    </p>
+  </footer>
+
+</body>
+</html>

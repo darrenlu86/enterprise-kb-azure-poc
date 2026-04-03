@@ -1,0 +1,4 @@
+azure-functions
+azure-search-documents>=11.6.0
+azure-cosmos>=4.7.0
+openai>=1.30.0
