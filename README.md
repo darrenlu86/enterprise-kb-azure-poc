@@ -1,5 +1,7 @@
 # Government Regulation AI Knowledge Base — Azure PoC
 
+> [中文版 README](README.zh-TW.md)
+
 Full-cloud RAG system for government regulation knowledge base, ensuring **terminology fidelity** in AI responses.
 
 ## Architecture
